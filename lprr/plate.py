@@ -19,9 +19,9 @@ def de_lpr(coord,im0):
     ims.append(im)
     ims = torch.Tensor(ims)
     lprnet = build_lprnet(lpr_max_len=8, phase=True, class_num=len(CHARS), dropout_rate=0.5)
-    device = torch.device("cuda:0" if True else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     lprnet.to(device)
-    lprnet.load_state_dict(torch.load(r"G:\b_zhan\yolov5-master\lprr\Final_LPRNet_model.pth"))
+    lprnet.load_state_dict(torch.load(r"D:\source\master_liu\lprr\Final_LPRNet_model.pth", map_location=torch.device('cpu')))
     prebs = lprnet(ims.to(device))  # classifier prediction
     prebs = prebs.cpu().detach().numpy()
     preb_labels = list()
