@@ -14,6 +14,8 @@ def de_lpr(coord,im0):
     img=im0[int(coord[1]):int(coord[3]),int(coord[0]):int(coord[2])]
     ims = []
     # cut = cv2.imread(img)
+    if(img.shape[0] == 0):
+        return np.array([[15,39,54,31,39,31,31,39]])
     im = cv2.resize(img, (94, 24))
     im = transform(im)
     ims.append(im)
