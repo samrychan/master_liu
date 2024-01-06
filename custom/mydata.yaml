@@ -1,0 +1,8 @@
+train: D:\source\master_liu\custom\paper_data\train.txt
+val: D:\source\master_liu\custom\paper_data\val.txt
+test: D:\source\master_liu\custom\paper_data\test.txt
+test_xml: D:\source\master_liu\custom\data\mydata\xml
+
+nc: 1
+
+names: ["plate"]

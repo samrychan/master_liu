@@ -94,7 +94,7 @@ def export_torchscript(model, im, file, optimize, prefix=colorstr('TorchScript:'
     try:
         LOGGER.info(f'\n{prefix} starting export with torch {torch.__version__}...')
         f = file.with_suffix('.torchscript')
-
+        fl = file.with_suffix('.torchscript.ptl')
         ts = torch.jit.trace(model, im, strict=False)
         d = {"shape": im.shape, "stride": int(max(model.stride)), "names": model.names}
         extra_files = {'config.txt': json.dumps(d)}  # torch._C.ExtraFilesMap()
@@ -102,7 +102,7 @@ def export_torchscript(model, im, file, optimize, prefix=colorstr('TorchScript:'
             optimize_for_mobile(ts)._save_for_lite_interpreter(str(f), _extra_files=extra_files)
         else:
             ts.save(str(f), _extra_files=extra_files)
-
+        (optimize_for_mobile(ts) if optimize else ts)._save_for_lite_interpreter(str(fl))
         LOGGER.info(f'{prefix} export success, saved as {f} ({file_size(f):.1f} MB)')
         return f
     except Exception as e:
@@ -568,7 +568,7 @@ def run(
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='dataset.yaml path')
-    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model.pt path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default=ROOT / r'D:\source\master_liu\runs\train\exp\weights\best.pt', help='model.pt path(s)')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640, 640], help='image (h, w)')
     parser.add_argument('--batch-size', type=int, default=1, help='batch size')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
@@ -577,7 +577,7 @@ def parse_opt():
     parser.add_argument('--train', action='store_true', help='model.train() mode')
     parser.add_argument('--keras', action='store_true', help='TF: use Keras')
     parser.add_argument('--optimize', action='store_true', help='TorchScript: optimize for mobile')
-    parser.add_argument('--int8', action='store_true', help='CoreML/TF INT8 quantization')
+    parser.add_argument('--int8', default=True, action='store_true', help='CoreML/TF INT8 quantization')
     parser.add_argument('--dynamic', action='store_true', help='ONNX/TF: dynamic axes')
     parser.add_argument('--simplify', action='store_true', help='ONNX: simplify model')
     parser.add_argument('--opset', type=int, default=12, help='ONNX: opset version')
@@ -591,7 +591,7 @@ def parse_opt():
     parser.add_argument('--conf-thres', type=float, default=0.25, help='TF.js NMS: confidence threshold')
     parser.add_argument('--include',
                         nargs='+',
-                        default=['torchscript', 'onnx'],
+                        default=['torchscript', 'onnx', 'tflite'],
                         help='torchscript, onnx, openvino, engine, coreml, saved_model, pb, tflite, edgetpu, tfjs')
     opt = parser.parse_args()
     print_args(vars(opt))
