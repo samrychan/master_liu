@@ -23,7 +23,7 @@ def de_lpr(coord,im0):
     lprnet = build_lprnet(lpr_max_len=8, phase=True, class_num=len(CHARS), dropout_rate=0.5)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     lprnet.to(device)
-    lprnet.load_state_dict(torch.load(r"D:\source\master_liu\lprr\Final_LPRNet_model.pth", map_location=torch.device('cpu')))
+    lprnet.load_state_dict(torch.load("lprr/Final_LPRNet_model.pth", map_location=torch.device('cpu')))
     prebs = lprnet(ims.to(device))  # classifier prediction
     prebs = prebs.cpu().detach().numpy()
     preb_labels = list()
