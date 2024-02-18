@@ -1,36 +1,10 @@
-# YOLOv5 🚀 by Ultralytics, GPL-3.0 license
-"""
-Run inference on images, videos, directories, streams, etc.
-
-Usage - sources:
-    $ python path/to/detect.py --weights yolov5s.pt --source 0              # webcam
-                                                             img.jpg        # image
-                                                             vid.mp4        # video
-                                                             path/          # directory
-                                                             path/*.jpg     # glob
-                                                             'https://youtu.be/Zgi9g1ksQHc'  # YouTube
-                                                             'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
-
-Usage - formats:
-    $ python path/to/detect.py --weights yolov5s.pt                 # PyTorch
-                                         yolov5s.torchscript        # TorchScript
-                                         yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
-                                         yolov5s.xml                # OpenVINO
-                                         yolov5s.engine             # TensorRT
-                                         yolov5s.mlmodel            # CoreML (macOS-only)
-                                         yolov5s_saved_model        # TensorFlow SavedModel
-                                         yolov5s.pb                 # TensorFlow GraphDef
-                                         yolov5s.tflite             # TensorFlow Lite
-                                         yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
-"""
-
 import argparse
 import os
 import sys
 from pathlib import Path
-
+from PIL import Image
 import torch
-from flask import Flask
+from flask import Flask, request
 import numpy as np
 from utils.augmentations import letterbox
 
@@ -43,8 +17,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 from models.common import DetectMultiBackend
 from utils.general import (check_img_size, cv2, non_max_suppression, print_args, scale_coords)
 from utils.torch_utils import select_device, time_sync
-from lprr.plate import de_lpr,dr_plate
-
+from lprr.plate import de_lpr, dr_plate, parse_plate
 
 app = Flask(__name__)
 model = None
@@ -52,9 +25,18 @@ opt = None
 
 @app.route("/detect", methods=['POST'])
 def detect():
-    pass
+    t1 = time_sync()
+    f = request.files['image']
+    image = Image.open(f.stream)
+    img0 = cv2.cvtColor(np.asanyarray(image), cv2.COLOR_RGB2BGR)
+    # img0 = cv2.imread('D:\\source\\master_liu\\data\\images\\dc54564e9258d1098799c7bf5c5b45ba6c814d49.jpeg')
+    plate_dict = real_detect(img0)
+    t2 = time_sync()
+    print(t2 - t1)
+    return plate_dict
 
-def real_detect():
+@torch.no_grad()
+def real_detect(img0):
     conf_thres = opt.conf_thres
     iou_thres = opt.iou_thres
     max_det = opt.max_det
@@ -64,7 +46,6 @@ def real_detect():
     augment = opt.augment
     t1 = time_sync()
     dt = [0.0, 0.0, 0.0]
-    img0 = cv2.imread('D:\\source\\master_liu\\data\\images\\dc54564e9258d1098799c7bf5c5b45ba6c814d49.jpeg')
     im = tensor_image(img0)
     im = torch.from_numpy(im).to(device)
     im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
@@ -79,6 +60,7 @@ def real_detect():
     # NMS
     pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
     dt[2] += time_sync() - t3
+    result=[]
     for i, det in enumerate(pred):  # per image
         if len(det):
             # Rescale boxes from img_size to im0 size
@@ -86,10 +68,16 @@ def real_detect():
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
-                plate = de_lpr(xyxy, img0)
-                dr_plate(img0, xyxy, plate)
-
-
+                plate_num = de_lpr(xyxy, img0)
+                plate_str = parse_plate(plate_num)
+                plate={"plate":plate_str,
+                       "x1":int(xyxy[0]),
+                       "y1":int(xyxy[1]),
+                       "x2":int(xyxy[2]),
+                       "y2":int(xyxy[3])}
+                result.append(plate)
+    print(dt)
+    return result
 
 
 @torch.no_grad()
@@ -114,7 +102,6 @@ def init_model(
     imgsz = check_img_size(imgsz, s=stride)  # check image size
     bs = 1
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))
-    real_detect()
 
 
 
@@ -150,6 +137,7 @@ def parse_opt():
 if __name__ == "__main__":
     opt = parse_opt()
     init_model(**vars(opt))
+    app.run()
 
 
 

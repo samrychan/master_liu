@@ -59,3 +59,11 @@ def dr_plate(im0,coord,plat_num):
 
     cv2.putText(im0,a,(x1,x2),0,1,(255,0,0), thickness=2,
                             lineType=cv2.LINE_AA)
+
+def parse_plate(plat_num):
+    plate = np.array(plat_num)
+    a = ""
+    for i in range(0, plate.shape[1]):
+        b = CHARS[plate[0][i]]
+        a += b
+    return a
